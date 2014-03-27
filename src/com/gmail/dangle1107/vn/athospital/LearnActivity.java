@@ -28,10 +28,10 @@ public class LearnActivity extends Activity{
 	int realMaxNumberImage;
 	int userLevel; 
 	int userSubLevel;
-	long totalMark = 0;
+	double totalMark;
 	final static int CURRENT_USER_ID = 1;
 	final static int AMOUNT_OF_LEVEL = 4;
-	final static int AMOUNT_OF_SUBLEVEL = 5;
+	final static int AMOUNT_OF_SUBLEVEL = 5;	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -50,17 +50,17 @@ public class LearnActivity extends Activity{
 	
 	private void setRealMaxNumberImage(){
 		int maxNumberImage = Math.min(MAX_NUMBER_IMAGE, lstKnowledgeDto.size());
-		long rememberedImage = totalMark / 10;
-		int numberOfImageInALevel = maxNumberImage / AMOUNT_OF_LEVEL;
-		int numberOfImageInASubLevel = maxNumberImage / AMOUNT_OF_LEVEL / AMOUNT_OF_SUBLEVEL;
+		realMaxNumberImage = maxNumberImage;
+		double rememberedImage = totalMark / 10;
+		double numberOfImageInALevel = maxNumberImage * 1.0 / AMOUNT_OF_LEVEL;
+		double numberOfImageInASubLevel = numberOfImageInALevel * 1.0 / AMOUNT_OF_SUBLEVEL;
 		for(int i = 1; i <= AMOUNT_OF_LEVEL; i++){
-			int level = numberOfImageInALevel * i;
-			if(rememberedImage <= level){
-				realMaxNumberImage = level;
+			double level = numberOfImageInALevel * i;
+			if(rememberedImage <= level){				
 				userLevel = i;
 				userSubLevel = 1;
 				for(int j = 1; j < AMOUNT_OF_SUBLEVEL; j++){
-					int subLevel = level - numberOfImageInASubLevel * j;
+					double subLevel = level - numberOfImageInASubLevel * j;
 					if(rememberedImage > subLevel){
 						userSubLevel = AMOUNT_OF_SUBLEVEL - j + 1;
 						break;
@@ -106,6 +106,7 @@ public class LearnActivity extends Activity{
 		learnDataSource = new LearnDataSource(this);
 		learnDataSource.open();			
 		int count = 0;
+		totalMark = 0.0;
 		for(int i=0;i<lstKnowledge.size();i++)
 		{
 			if(count == maxRange)
@@ -121,15 +122,15 @@ public class LearnActivity extends Activity{
 			item.subject_id = lstKnowledge.get(i).getSubjectId();
 			item.mark = -1;
 			item.times = 0;
-			item.totalMark = 0;
+			item.totalMark = 0.0;
 			if(learn != null)				
 			{				
 				if(learn.getTimes() != 0)
 				{
 					item.times = learn.getTimes();
-					item.mark = learn.getTotalMark() / learn.getTimes();
+					item.mark = calculateMark(learn.getMark(), learn.getTotalMark(), learn.getTimes());
 					item.totalMark = learn.getTotalMark();
-					item.order =item.mark; 
+					item.order = item.mark; 
 					totalMark += item.mark;
 				}
 			}
@@ -139,6 +140,15 @@ public class LearnActivity extends Activity{
 		}
 		learnDataSource.close();
 	}
+	
+	private double calculateMark(double mark, double totalMark, long times){
+		if(times == 0)
+			return -1;
+		if(mark > 0)
+			return (mark * 8 + (totalMark / times) * 2) / 10;
+		return totalMark / times;
+	}
+	
 	private void DrawContent() {				
 		setCurrentIndex();
 		if(current_index < 0)
@@ -147,7 +157,7 @@ public class LearnActivity extends Activity{
 		int imageResource = getResources().getIdentifier(path, null, getPackageName());
 		Drawable res = getResources().getDrawable(imageResource);		
 		imageViewContent.setImageDrawable(res);
-		long mark = lstKnowledgeDto.get(current_index).mark;
+		double mark = lstKnowledgeDto.get(current_index).mark;
 		if(mark > 9)
 			imageViewDifficultLevel.setImageResource(R.drawable.zero_star);
 		else if(mark > 8)
@@ -170,55 +180,16 @@ public class LearnActivity extends Activity{
 			InitKnowledge();
 			current_index=0;
 		}
-	}
-	/*private void DrawContent() {
-		Utility utility = new Utility();
-		//current_index = utility.mod((current_index+1),values.size());
-		getCurrentIndex();		 
-		String path= "@drawable/" + lstKnowledge.get(current_index).getContent();
-		int imageResource = getResources().getIdentifier(path, null, getPackageName());
-		Drawable res = getResources().getDrawable(imageResource);		
-		imageViewContent.setImageDrawable(res);
-		
-		Learn learn = learnDataSource.getLearn(CURRENT_USER_ID, lstKnowledge.get(current_index).getId());
-		
-		if(learn == null)
-		{
-			imageViewDifficultLevel.setImageResource(R.drawable.zero_star);			
-		}else
-		{
-			long hard = 10;
-		
-			if(learn.getTimes() != 0) 
-				hard = learn.getTotalMark() / learn.getTimes();
-			if(hard > 9)
-				imageViewDifficultLevel.setImageResource(R.drawable.zero_star);
-			else if(hard > 8)
-				imageViewDifficultLevel.setImageResource(R.drawable.one_star);
-			else if(hard > 6)
-				imageViewDifficultLevel.setImageResource(R.drawable.two_star);
-			else if(hard > 4)
-				imageViewDifficultLevel.setImageResource(R.drawable.three_star);
-			else if(hard > 2)
-				imageViewDifficultLevel.setImageResource(R.drawable.four_star);
-			else 
-				imageViewDifficultLevel.setImageResource(R.drawable.five_star);
-		}
-	}*/
-	
-
-	/*private void getCurrentIndex() {
-		Random r = new Random();
-		int minRange = 0;
-		int maxRange = Math.min(MAX_NUMBER_IMAGE, lstKnowledge.size()) - 1;
-		current_index = r.nextInt(maxRange - minRange + 1) + minRange;
-	}*/
+	}	
 	
 	public void remember(View view){		
 		KnowledgeDto item = lstKnowledgeDto.get(current_index);
-		item.times++;		
-		totalMark = totalMark - item.mark + (10 + item.totalMark) / item.times;
-		item.mark = (10 + item.totalMark) / item.times;
+		item.times++;
+		item.totalMark += 10;		
+		if(item.mark != -1)
+			totalMark -= item.mark;		 
+		item.mark = calculateMark(10, item.totalMark, item.times);
+		totalMark += item.mark;
 		setRealMaxNumberImage();
 		setTextViewUserLevel();
 		Date currentDate = new Date(System.currentTimeMillis());
@@ -232,8 +203,10 @@ public class LearnActivity extends Activity{
 	public void miss(View view){
 		KnowledgeDto item = lstKnowledgeDto.get(current_index);
 		item.times++;		
-		totalMark = totalMark - item.mark + item.totalMark / item.times;
-		item.mark = item.totalMark / item.times;		
+		if(item.mark != -1)
+			totalMark -= item.mark;		 
+		item.mark = calculateMark(0, item.totalMark, item.times);
+		totalMark += item.mark;		
 		setRealMaxNumberImage();
 		setTextViewUserLevel();
 		Date currentDate = new Date(System.currentTimeMillis());
