@@ -23,8 +23,8 @@ public class LearnActivity extends Activity{
 	private int current_index;
 	List<Knowledge> lstKnowledge;
 	List<KnowledgeDto> lstKnowledgeDto;
-	final static int MAX_NUMBER_IMAGE = 11;
-	final static String MAX_IMAGE_NAME = "img00011.png";
+	final static int MAX_NUMBER_IMAGE = 7;
+	final static String MAX_IMAGE_NAME = "img00007.png";
 	int realMaxNumberImage;
 	int userLevel; 
 	int userSubLevel;
